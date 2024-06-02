@@ -1,13 +1,16 @@
+from PySide6.QtCore import Qt
 from PySide6.QtWidgets import QMainWindow, QComboBox, QHBoxLayout, QVBoxLayout, QWidget, QLabel
+
+import TagWidget
 
 '''Thoughts:
     - Day/Month/Year seperate or combine into one date box?
 '''
 
-# Subclass QMainWindow to customize your application's main window
+
 class MainWindow(QMainWindow):
     def __init__(self):
-        super().__init__()
+        super(MainWindow, self).__init__()
 
         self.setWindowTitle("TagVink")
 
@@ -25,18 +28,12 @@ class MainWindow(QMainWindow):
 
         tag_layout.addWidget(tag_box)
 
-        # Date buttons
+        '''Date buttons'''
         date_layout = QHBoxLayout()
 
         # Day
-        day_layout = QVBoxLayout()
-        day_titel = QLabel("Day")
-
-        day_box = QComboBox()
-        day_box.setEditable(True)
-
-        day_layout.addWidget(day_titel)
-        day_layout.addWidget(day_box)
+        day_widget = TagWidget.TagWidget()
+        # day_widget.createWidget("Day")
 
         # Month
         month_layout = QVBoxLayout()
@@ -44,6 +41,7 @@ class MainWindow(QMainWindow):
 
         month_box = QComboBox()
         month_box.setEditable(True)
+        month_box.addItems(["< blank >", "< keep >"])
 
         month_layout.addWidget(month_titel)
         month_layout.addWidget(month_box)
@@ -59,7 +57,7 @@ class MainWindow(QMainWindow):
         year_layout.addWidget(year_titel)
         year_layout.addWidget(year_box)
 
-        date_layout.addLayout(day_layout)
+        date_layout.addWidget(day_widget)
         date_layout.addLayout(month_layout)
         date_layout.addLayout(year_layout)
 
