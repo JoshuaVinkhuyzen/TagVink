@@ -1,33 +1,27 @@
 from PySide6.QtCore import Qt
-from PySide6.QtWidgets import QMainWindow, QComboBox, QHBoxLayout, QVBoxLayout, QWidget, QLabel
+from PySide6.QtWidgets import QMainWindow, QComboBox, QHBoxLayout, QVBoxLayout, QWidget, QLabel, QFormLayout
 
 
 class TagWidget(QWidget):
-    def __init__(self):
+    def __init__(self, label_text, parent=None):
         super(TagWidget, self).__init__()
 
-        layout = QVBoxLayout()
-        titel = QLabel("[ERROR] specify label")
-        titel.setAlignment(Qt.AlignmentFlag.AlignLeft)
+        self.layout = QFormLayout()
 
-        box = QComboBox()
-        box.setEditable(True)
-        box.addItems(["< blank >", "< keep >"])
+        self.titel = QLabel(label_text)
 
-        layout.addWidget(titel)
-        layout.addWidget(box)
+        self.box = QComboBox()
+        self.box.setEditable(True)
+        self.box.addItems(["< blank >", "< keep >"])
 
+        # Add widgets to form layout with alignment
+        self.layout.addRow(self.titel, self.box)
 
+        # Align label and combo box to top left
+        self.layout.setLabelAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignTop)
+        self.layout.setFormAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignTop)
 
-    def createWidget(self, titel):
+        self.layout.addWidget(self.titel)
+        self.layout.addWidget(self.box)
 
-        layout = QVBoxLayout()
-        titel = QLabel(titel)
-        titel.setAlignment(Qt.AlignmentFlag.AlignLeft)
-
-        box = QComboBox()
-        box.setEditable(True)
-        box.addItems(["< blank >", "< keep >"])
-
-        layout.addWidget(titel)
-        layout.addWidget(box)
+        self.setLayout(self.layout)
