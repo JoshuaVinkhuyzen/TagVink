@@ -1,8 +1,33 @@
 from PySide6.QtCore import Qt
-from PySide6.QtWidgets import QComboBox, QHBoxLayout, QVBoxLayout, QWidget, QFormLayout, QLabel, QListWidget
+from PySide6.QtWidgets import QComboBox, QHBoxLayout, QVBoxLayout, QWidget, QFormLayout, QLabel, QListWidget, QLineEdit
 from PySide6.QtGui import QPixmap
 
-import TagWidget, AspectRatioLabel
+import AspectRatioLabel
+
+
+def sort_list_widget(list_widget):
+    items = [list_widget.item(i).text() for i in range(list_widget.count())]
+    items.sort()
+    list_widget.clear()
+    for item in items:
+        list_widget.addItem(item)
+
+
+def create_tag_widget(label_text):
+    widget = QWidget()
+    layout = QVBoxLayout()
+
+    title_label = QLabel(label_text)
+    box = QComboBox()
+    box.setEditable(True)
+    box.addItems(["< blank >", "< keep >"])
+
+    layout.addWidget(title_label)
+    layout.addWidget(box)
+
+    widget.setLayout(layout)
+    return widget
+
 
 class TagWindow(QWidget):
     def __init__(self):
@@ -11,34 +36,38 @@ class TagWindow(QWidget):
         self.setWindowTitle("TagWindow")
 
         self.main_layout = QVBoxLayout()
+        self.main_layout.setSpacing(5)  # Adjust the vertical spacing between widgets
 
-        self.filename_widget = TagWidget.TagWidget("Title:")
+        # self.filename_widget = create_combo_box_with_label("Title:")
+
+        self.filename_widget = create_tag_widget("Title:")
         self.main_layout.addWidget(self.filename_widget)
 
         '''Date buttons'''
         self.date_layout = QHBoxLayout()
+        self.date_layout.setSpacing(5)  # Adjust the vertical spacing between widgets
 
         # Day
-        self.day_widget = TagWidget.TagWidget("Day:")
+        self.day_widget = create_tag_widget("Day:")
         self.date_layout.addWidget(self.day_widget)
 
         # Month
-        self.month_widget = TagWidget.TagWidget("Month:")
+        self.month_widget = create_tag_widget("Month:")
         self.date_layout.addWidget(self.month_widget)
 
         # Year
-        self.year_widget = TagWidget.TagWidget("Year:")
+        self.year_widget = create_tag_widget("Year:")
         self.date_layout.addWidget(self.year_widget)
 
         self.main_layout.addLayout(self.date_layout)
 
         '''Tag Layout'''
-        self.tag_layout = QHBoxLayout()
+        self.tag_layout = QVBoxLayout()
 
-        # Tags
-        self.applied_tags_widget = QListWidget()
-        self.applied_tags_widget.itemDoubleClicked.connect(self.remove_tag_from_applied)
-        self.tag_layout.addWidget(self.applied_tags_widget)
+        # Applied Tags QLineEdit
+        self.applied_tags_input = QLineEdit()
+        self.applied_tags_input.setPlaceholderText("Enter tags here")
+        self.tag_layout.addWidget(self.applied_tags_input)
 
         # Available Tags
         self.available_tags_widget = QListWidget()
@@ -57,34 +86,23 @@ class TagWindow(QWidget):
         self.populate_available_tags()
 
     def populate_available_tags(self):
-        sample_tags = ["Tag1", "Tag2", "Tag3", "Tag4", "Tag5"]
+        sample_tags = ["Tag1", "Tag2", "Tag3", "Tag5", "Tag4"]
         for tag in sample_tags:
             self.available_tags_widget.addItem(tag)
-        # Sort the applied tags
-        self.sort_list_widget(self.applied_tags_widget)
-
-    def sort_list_widget(self, list_widget):
-        items = [list_widget.item(i).text() for i in range(list_widget.count())]
-        items.sort()
-        list_widget.clear()
-        for item in items:
-            list_widget.addItem(item)
+        # Sort the available tags
+        sort_list_widget(self.available_tags_widget)
 
     def transfer_tag_to_applied(self, item):
-        # Check if the item is already in the applied_tags_widget
-        for i in range(self.applied_tags_widget.count()):
-            if self.applied_tags_widget.item(i).text() == item.text():
-                return  # Item already exists, do not add again
-
-        # If not found, add the item to the applied_tags_widget
-        self.applied_tags_widget.addItem(item.text())
-        # Sort the applied tags
-        self.sort_list_widget(self.applied_tags_widget)
-
-    def remove_tag_from_applied(self, item):
-        self.applied_tags_widget.takeItem(self.applied_tags_widget.row(item))
-        # Sort the applied tags
-        self.sort_list_widget(self.applied_tags_widget)
+        # Check if the item is already in the applied tags input
+        current_tags = self.applied_tags_input.text().split(',')
+        if item.text() not in current_tags:
+            if self.applied_tags_input.text():
+                self.applied_tags_input.setText(self.applied_tags_input.text() + ', ' + item.text())
+            else:
+                self.applied_tags_input.setText(item.text())
+        else:
+            # Item already exists in the applied tags input
+            return
 
 
 if __name__ == '__main__':
