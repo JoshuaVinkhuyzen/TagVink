@@ -36,16 +36,12 @@ class TagWindow(QWidget):
         self.setWindowTitle("TagWindow")
 
         self.main_layout = QVBoxLayout()
-        self.main_layout.setSpacing(5)  # Adjust the vertical spacing between widgets
-
-        # self.filename_widget = create_combo_box_with_label("Title:")
 
         self.filename_widget = create_tag_widget("Title:")
         self.main_layout.addWidget(self.filename_widget)
 
         '''Date buttons'''
         self.date_layout = QHBoxLayout()
-        self.date_layout.setSpacing(5)  # Adjust the vertical spacing between widgets
 
         # Day
         self.day_widget = create_tag_widget("Day:")
@@ -60,6 +56,14 @@ class TagWindow(QWidget):
         self.date_layout.addWidget(self.year_widget)
 
         self.main_layout.addLayout(self.date_layout)
+
+        '''Comments'''
+        self.filename_widget = create_tag_widget("Comments:")
+        self.main_layout.addWidget(self.filename_widget)
+
+        '''Authors'''
+        self.filename_widget = create_tag_widget("Authors:")
+        self.main_layout.addWidget(self.filename_widget)
 
         '''Tag Layout'''
         self.tag_layout = QVBoxLayout()

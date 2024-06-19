@@ -6,7 +6,7 @@ class AspectRatioLabel(QLabel):
         super().__init__()
         self.setPixmap(pixmap)
         self.setScaledContents(True)
-        self.setMinimumSize(256, 256)
+        self.setMinimumSize(456, 256)
 
     def resizeEvent(self, event):
         pixmap = self.pixmap()
