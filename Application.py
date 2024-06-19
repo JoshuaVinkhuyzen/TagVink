@@ -16,8 +16,7 @@ class MainWindow(QMainWindow):
         tag_window = TagWindow.TagWindow()
         self.main_layout.addWidget(tag_window)
 
-        directory_path = ('D:/Programing/PycharmProjects/Kitepower_Tether_Inspection/Tether_Inspection_Software/'
-                          'Saved_Images/Parallel_1/1_Side')
+        directory_path = ('C:/Users/Joshua/OneDrive/Pictures/Saved Pictures')
 
         item_list = ItemList.ItemList(directory_path)
         self.main_layout.addWidget(item_list)

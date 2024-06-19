@@ -2,7 +2,23 @@ from PySide6.QtCore import Qt
 from PySide6.QtWidgets import QComboBox, QHBoxLayout, QVBoxLayout, QWidget, QFormLayout, QLabel, QListWidget, QLineEdit
 from PySide6.QtGui import QPixmap
 
-import AspectRatioLabel
+
+class AspectRatioLabel(QLabel):
+    def __init__(self, pixmap):
+        super().__init__()
+        self.setPixmap(pixmap)
+        self.setScaledContents(True)
+        self.setMinimumSize(456, 256)
+
+    def resizeEvent(self, event):
+        pixmap = self.pixmap()
+        if pixmap:
+            size = event.size()
+            aspect_ratio = pixmap.width() / pixmap.height()
+            if size.width() / size.height() > aspect_ratio:
+                self.resize(size.height() * aspect_ratio, size.height())
+            else:
+                self.resize(size.width(), size.width() / aspect_ratio)
 
 
 def sort_list_widget(list_widget):
@@ -80,7 +96,7 @@ class TagWindow(QWidget):
 
         self.main_layout.addLayout(self.tag_layout)
 
-        image_widget = AspectRatioLabel.AspectRatioLabel(
+        image_widget = AspectRatioLabel(
             QPixmap('D:/Programing/PycharmProjects/Kitepower_Tether_Inspection/Images/Good/frame0.jpg'))
         self.main_layout.addWidget(image_widget)
 
