@@ -1,7 +1,9 @@
-from PySide6.QtWidgets import QWidget, QVBoxLayout, QTableWidget, QTableWidgetItem, QProgressBar
+from PySide6.QtWidgets import QWidget, QVBoxLayout, QTableWidget, QTableWidgetItem, QProgressBar, QMainWindow
 from PySide6.QtCore import Qt, QThread, Signal
 from PIL import Image
 import os
+
+import ProgressBar
 
 
 class ImageLoaderThread(QThread):
@@ -36,7 +38,7 @@ class ImageLoaderThread(QThread):
             current_progress += progress_step
             self.progress_updated.emit(int(current_progress))
 
-            # Emit signal to add image metadata to table
+            # Emit signal with image information
             self.image_info_ready.emit(image_file, width, height)
 
         self.finished_loading.emit()
@@ -53,12 +55,6 @@ class ItemList(QWidget):
 
         self.main_layout = QVBoxLayout()
 
-        # Progress bar
-        self.progress_bar = QProgressBar()
-        self.progress_bar.setMinimum(0)
-        self.progress_bar.setMaximum(100)
-        self.main_layout.addWidget(self.progress_bar)
-
         # Table Widget to display image filenames and metadata
         self.table_widget = QTableWidget()
         self.table_widget.setColumnCount(2)  # Two columns: File Name, Dimensions
@@ -72,10 +68,15 @@ class ItemList(QWidget):
         self.image_loader_thread.progress_updated.connect(self.update_progress)
         self.image_loader_thread.finished_loading.connect(self.loading_finished)
         self.image_loader_thread.image_info_ready.connect(self.add_image_info_to_table)
+
+        # Show progress bar window
+        self.progress_window = ProgressBar.ProgressBarWindow()
+        self.progress_window.show()
+
         self.image_loader_thread.start()
 
     def update_progress(self, value):
-        self.progress_bar.setValue(value)
+        self.progress_window.update_progress(value)
 
     def add_image_info_to_table(self, image_file, width, height):
         # Insert a new row
@@ -95,18 +96,19 @@ class ItemList(QWidget):
         self.table_widget.resizeColumnsToContents()
 
     def loading_finished(self):
-        # Hide progress bar once loading is complete
-        self.progress_bar.hide()
+        # Close progress bar window once loading is complete
+        self.progress_window.close()
 
 
+# Example usage
 if __name__ == '__main__':
     import sys
     from PySide6.QtWidgets import QApplication
 
     app = QApplication(sys.argv)
 
-    directory_path = ('D:/Programing/PycharmProjects/Kitepower_Tether_Inspection/Tether_Inspection_Software/'
-                      'Saved_Images/Parallel_1/1_Side')
+    # Example directory path
+    directory_path = 'C:/Users/Joshua/OneDrive/Pictures/Saved Pictures'
 
     item_list_widget = ItemList(directory_path)
     item_list_widget.show()
