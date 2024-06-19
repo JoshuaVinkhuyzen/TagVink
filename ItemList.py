@@ -7,7 +7,7 @@ import ProgressBar
 
 
 class ImageLoaderThread(QThread):
-    progress_updated = Signal(int)
+    progress_updated = Signal(int, int, int)  # Current progress, current count, total count
     finished_loading = Signal()
     image_info_ready = Signal(str, int, int)  # Custom signal with filename, width, height
 
@@ -36,7 +36,7 @@ class ImageLoaderThread(QThread):
 
             # Emit signal to update progress
             current_progress += progress_step
-            self.progress_updated.emit(int(current_progress))
+            self.progress_updated.emit(int(current_progress), idx + 1, num_files)
 
             # Emit signal with image information
             self.image_info_ready.emit(image_file, width, height)
@@ -75,8 +75,8 @@ class ItemList(QWidget):
 
         self.image_loader_thread.start()
 
-    def update_progress(self, value):
-        self.progress_window.update_progress(value)
+    def update_progress(self, value, current, total):
+        self.progress_window.update_progress(value, current, total)
 
     def add_image_info_to_table(self, image_file, width, height):
         # Insert a new row
