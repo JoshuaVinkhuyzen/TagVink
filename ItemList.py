@@ -88,6 +88,9 @@ class ItemList(QWidget):
 
         self.directory_path = directory_path
 
+        self.setWindowTitle("TagWindow")
+        self.setMinimumWidth(350)
+
         self.main_layout = QVBoxLayout()
 
         # Table Widget to display image filenames and metadata
