@@ -8,7 +8,7 @@ class AspectRatioLabel(QLabel):
         super().__init__()
         self.setPixmap(pixmap)
         self.setScaledContents(True)
-        self.setMinimumSize(456, 256)
+        self.setMinimumSize(250, 250)
 
     def resizeEvent(self, event):
         pixmap = self.pixmap()
@@ -50,6 +50,8 @@ class TagWindow(QWidget):
         super(TagWindow, self).__init__()
 
         self.setWindowTitle("TagWindow")
+        self.setMinimumWidth(350)
+        self.setMaximumWidth(700)
 
         self.main_layout = QVBoxLayout()
 

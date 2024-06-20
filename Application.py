@@ -1,8 +1,8 @@
 from PySide6.QtCore import Qt
-from PySide6.QtWidgets import QMainWindow, QComboBox, QHBoxLayout, QVBoxLayout, QWidget, QLabel, QSizePolicy, QFormLayout
+from PySide6.QtWidgets import QMainWindow, QSplitter, QVBoxLayout, QWidget
 
-import TagWindow, ItemList
-
+import TagWindow
+import ItemList
 
 class MainWindow(QMainWindow):
     def __init__(self):
@@ -11,19 +11,33 @@ class MainWindow(QMainWindow):
         self.setWindowTitle("TagVink")
         self.setMinimumSize(400, 300)
 
-        self.main_layout = QHBoxLayout(self)
+        splitter = QSplitter(Qt.Horizontal)  # Use a horizontal splitter
 
         tag_window = TagWindow.TagWindow()
-        self.main_layout.addWidget(tag_window)
+        splitter.addWidget(tag_window)
 
-        directory_path = ('C:/Users/Joshua/OneDrive/Pictures/Saved Pictures')
+        directory_path = 'C:/Users/joshu/OneDrive/Pictures/Saved Pictures'
 
         item_list = ItemList.ItemList(directory_path)
-        self.main_layout.addWidget(item_list)
+        splitter.addWidget(item_list)
+
+        splitter.setStretchFactor(0, 1)  # Set stretch factor for tag_window
+        splitter.setStretchFactor(1, 1)  # Set stretch factor for item_list
 
         central_widget = QWidget()
-        central_widget.setLayout(self.main_layout)
+        layout = QVBoxLayout()
+        layout.addWidget(splitter)
+        central_widget.setLayout(layout)
         self.setCentralWidget(central_widget)
 
 
+if __name__ == '__main__':
+    import sys
+    from PySide6.QtWidgets import QApplication
 
+    app = QApplication(sys.argv)
+
+    main_window = MainWindow()
+    main_window.show()
+
+    sys.exit(app.exec())
