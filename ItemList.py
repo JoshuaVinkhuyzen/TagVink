@@ -1,6 +1,6 @@
 from PySide6.QtWidgets import QWidget, QVBoxLayout, QTableWidget, QTableWidgetItem, QMainWindow, QLabel, QProgressBar, \
-    QApplication, QPushButton
-from PySide6.QtCore import Qt, QThread, Signal
+    QApplication, QPushButton, QMessageBox
+from PySide6.QtCore import Qt, QThread, Signal, QEvent
 import os
 import exiftool
 
@@ -14,6 +14,7 @@ class ImageLoaderThread(QThread):
         super().__init__()
         self.directory_path = directory_path
         self.et = exiftool.ExifTool(executable='./tools/exiftool.exe')  # Update to use the bundled ExifTool
+        self.cancelled = False
 
     def run(self):
         image_extensions = ['.jpg', '.jpeg', '.png', '.bmp', '.gif']
@@ -29,43 +30,54 @@ class ImageLoaderThread(QThread):
         progress_step = 100 / num_files
         current_progress = 0
 
-        with self.et:
-            for idx, image_file in enumerate(image_files):
-                file_path = os.path.join(self.directory_path, image_file)
-                metadata = self.et.execute_json('-G', '-j', file_path)
+        try:
+            with self.et:
+                for idx, image_file in enumerate(image_files):
+                    if self.cancelled:
+                        break
 
-                # Extract metadata from JSON response
-                filename = os.path.basename(file_path)
-                path = file_path
-                tags = metadata[0].get('Keywords', 'No Tags')
-                title = metadata[0].get('Title', 'No Title')
-                subject = metadata[0].get('Subject', 'No Subject')
-                author = metadata[0].get('Creator', 'No Author')
-                date_taken = metadata[0].get('DateTimeOriginal', 'No Date')
-                width = metadata[0].get('ImageWidth', 0)
-                height = metadata[0].get('ImageHeight', 0)
-                dimensions = f"{width} x {height}"
+                    file_path = os.path.join(self.directory_path, image_file)
+                    metadata = self.et.execute_json('-G', '-j', file_path)
 
-                # Emit signal to update progress
-                current_progress += progress_step
-                self.progress_updated.emit(int(current_progress), idx + 1, num_files)
+                    # Extract metadata from JSON response
+                    filename = os.path.basename(file_path)
+                    path = file_path
+                    tags = metadata[0].get('Keywords', '')
+                    title = metadata[0].get('Title', '')
+                    subject = metadata[0].get('Subject', '')
+                    author = metadata[0].get('Creator', '')
+                    date_taken = metadata[0].get('DateTimeOriginal', '')
+                    width = metadata[0].get('ImageWidth', 0)
+                    height = metadata[0].get('ImageHeight', 0)
+                    dimensions = f"{width} x {height}"
 
-                # Create metadata dictionary
-                image_metadata = {
-                    "filename": filename,
-                    "path": path,
-                    "tags": tags,
-                    "title": title,
-                    "subject": subject,
-                    "author": author,
-                    "date_taken": date_taken,
-                    "dimensions": dimensions
-                }
+                    # Emit signal to update progress
+                    current_progress += progress_step
+                    self.progress_updated.emit(int(current_progress), idx + 1, num_files)
 
-                # Emit signal with image information
-                self.image_info_ready.emit(image_metadata)
+                    # Create metadata dictionary
+                    image_metadata = {
+                        "filename": filename,
+                        "path": path,
+                        "tags": tags,
+                        "title": title,
+                        "subject": subject,
+                        "author": author,
+                        "date_taken": date_taken,
+                        "dimensions": dimensions
+                    }
 
-        self.finished_loading.emit()
+                    # Emit signal with image information
+                    self.image_info_ready.emit(image_metadata)
+
+        except Exception as e:
+            print(f"Error loading images: {e}")
+
+        finally:
+            self.finished_loading.emit()
+
+    def cancel_loading(self):
+        self.cancelled = True
 
     def update_metadata(self, file_path, metadata):
         try:
@@ -83,30 +95,55 @@ class ImageLoaderThread(QThread):
 
 
 class ProgressBarWindow(QMainWindow):
-    def __init__(self):
+    def __init__(self, image_loader_thread):
         super().__init__()
         self.setWindowTitle("Loading Images")
-
-        # Set a fixed size for the window
-        self.setFixedSize(300, 100)
+        self.setWindowFlags(Qt.Dialog | Qt.CustomizeWindowHint | Qt.WindowTitleHint | Qt.WindowCloseButtonHint)
 
         self.progress_bar = QProgressBar()
         self.progress_bar.setMinimum(0)
         self.progress_bar.setMaximum(100)
 
+        # Ensure the window stays on top
+        self.setWindowFlags(self.windowFlags() | Qt.WindowStaysOnTopHint)
+
         self.progress_label = QLabel("Loading 0 of 0 images")
+
+        self.cancel_button = QPushButton("Cancel")
+        self.cancel_button.clicked.connect(self.cancel_loading)
 
         layout = QVBoxLayout()
         layout.addWidget(self.progress_bar)
         layout.addWidget(self.progress_label)
+        layout.addWidget(self.cancel_button)
 
         container = QWidget()
         container.setLayout(layout)
         self.setCentralWidget(container)
 
+        self.image_loader_thread = image_loader_thread
+        self.image_loader_thread.progress_updated.connect(self.update_progress)
+        self.image_loader_thread.finished_loading.connect(self.loading_finished)
+
     def update_progress(self, value, current, total):
         self.progress_bar.setValue(value)
         self.progress_label.setText(f"Loading {current} of {total} images")
+
+    def cancel_loading(self):
+        self.image_loader_thread.cancel_loading()
+        self.close()
+
+    def loading_finished(self):
+        self.close()
+
+    def closeEvent(self, event):
+        reply = QMessageBox.question(self, 'Cancel Loading', 'Are you sure you want to cancel loading?',
+                                     QMessageBox.Yes | QMessageBox.No, QMessageBox.No)
+        if reply == QMessageBox.Yes:
+            self.image_loader_thread.cancel_loading()
+            event.accept()
+        else:
+            event.ignore()
 
 
 class ItemList(QWidget):
@@ -139,7 +176,7 @@ class ItemList(QWidget):
         self.image_loader_thread.image_info_ready.connect(self.add_image_info_to_table)
 
         # Show progress bar window
-        self.progress_window = ProgressBarWindow()
+        self.progress_window = ProgressBarWindow(self.image_loader_thread)
         self.progress_window.show()
 
         self.image_loader_thread.start()
