@@ -1,18 +1,19 @@
 from PySide6.QtWidgets import QWidget, QVBoxLayout, QTableWidget, QTableWidgetItem, QMainWindow, QLabel, QProgressBar, \
-    QApplication
+    QApplication, QPushButton
 from PySide6.QtCore import Qt, QThread, Signal
-from PIL import Image
 import os
+import exiftool
 
 
 class ImageLoaderThread(QThread):
-    progress_updated = Signal(int, int, int)  # Current progress, current count, total count
-    finished_loading = Signal()
-    image_info_ready = Signal(dict)  # Emit a dictionary with all the metadata
+    progress_updated = Signal(int, int, int)  # Signal for progress updates
+    image_info_ready = Signal(dict)  # Signal for emitting image metadata
+    finished_loading = Signal()  # Signal for indicating loading finished
 
     def __init__(self, directory_path):
         super().__init__()
         self.directory_path = directory_path
+        self.et = exiftool.ExifTool(executable='./tools/exiftool.exe')  # Update to use the bundled ExifTool
 
     def run(self):
         image_extensions = ['.jpg', '.jpeg', '.png', '.bmp', '.gif']
@@ -28,31 +29,57 @@ class ImageLoaderThread(QThread):
         progress_step = 100 / num_files
         current_progress = 0
 
-        for idx, image_file in enumerate(image_files):
-            file_path = os.path.join(self.directory_path, image_file)
-            image = Image.open(file_path)
-            width, height = image.size
+        with self.et:
+            for idx, image_file in enumerate(image_files):
+                file_path = os.path.join(self.directory_path, image_file)
+                metadata = self.et.execute_json('-G', '-j', file_path)
 
-            # Mock metadata for demonstration
-            metadata = {
-                "filename": image_file,
-                "path": file_path,
-                "tags": "Tag1, Tag2",
-                "title": "Sample Title",
-                "subject": "Sample Subject",
-                "author": "Sample Author",
-                "date_taken": "2024-06-19",
-                "dimensions": f"{width} x {height}"
-            }
+                # Extract metadata from JSON response
+                filename = os.path.basename(file_path)
+                path = file_path
+                tags = metadata[0].get('Keywords', 'No Tags')
+                title = metadata[0].get('Title', 'No Title')
+                subject = metadata[0].get('Subject', 'No Subject')
+                author = metadata[0].get('Creator', 'No Author')
+                date_taken = metadata[0].get('DateTimeOriginal', 'No Date')
+                width = metadata[0].get('ImageWidth', 0)
+                height = metadata[0].get('ImageHeight', 0)
+                dimensions = f"{width} x {height}"
 
-            # Emit signal to update progress
-            current_progress += progress_step
-            self.progress_updated.emit(int(current_progress), idx + 1, num_files)
+                # Emit signal to update progress
+                current_progress += progress_step
+                self.progress_updated.emit(int(current_progress), idx + 1, num_files)
 
-            # Emit signal with image information
-            self.image_info_ready.emit(metadata)
+                # Create metadata dictionary
+                image_metadata = {
+                    "filename": filename,
+                    "path": path,
+                    "tags": tags,
+                    "title": title,
+                    "subject": subject,
+                    "author": author,
+                    "date_taken": date_taken,
+                    "dimensions": dimensions
+                }
+
+                # Emit signal with image information
+                self.image_info_ready.emit(image_metadata)
 
         self.finished_loading.emit()
+
+    def update_metadata(self, file_path, metadata):
+        try:
+            # Construct command to update metadata using ExifTool
+            command = []
+            for key, value in metadata.items():
+                command.extend(['-' + key, value])
+            command.append(file_path)
+
+            # Execute the command to update metadata
+            self.et.execute(*command)
+
+        except Exception as e:
+            print(f"Error updating metadata for {file_path}: {e}")
 
 
 class ProgressBarWindow(QMainWindow):
@@ -88,9 +115,6 @@ class ItemList(QWidget):
 
         self.directory_path = directory_path
 
-        self.setWindowTitle("TagWindow")
-        self.setMinimumWidth(350)
-
         self.main_layout = QVBoxLayout()
 
         # Table Widget to display image filenames and metadata
@@ -100,6 +124,11 @@ class ItemList(QWidget):
         self.table_widget.setHorizontalHeaderLabels(
             ["Filename", "Path", "Tags", "Title", "Subject", "Author", "Date taken", "Dimensions"])
         self.main_layout.addWidget(self.table_widget)
+
+        # Update Metadata Button
+        self.update_metadata_button = QPushButton("Update Metadata")
+        self.update_metadata_button.clicked.connect(self.update_metadata)
+        self.main_layout.addWidget(self.update_metadata_button)
 
         self.setLayout(self.main_layout)
 
@@ -139,6 +168,18 @@ class ItemList(QWidget):
     def loading_finished(self):
         # Close progress bar window once loading is complete
         self.progress_window.close()
+
+    def update_metadata(self):
+        for row in range(self.table_widget.rowCount()):
+            file_path = self.table_widget.item(row, 1).text()
+            metadata = {
+                "Keywords": self.table_widget.item(row, 2).text(),
+                "Title": self.table_widget.item(row, 3).text(),
+                "Subject": self.table_widget.item(row, 4).text(),
+                "Creator": self.table_widget.item(row, 5).text(),
+                "DateTimeOriginal": self.table_widget.item(row, 6).text()
+            }
+            self.image_loader_thread.update_metadata(file_path, metadata)
 
 
 if __name__ == '__main__':
