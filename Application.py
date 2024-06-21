@@ -1,7 +1,6 @@
 from PySide6.QtCore import Qt, QSettings
-from PySide6.QtWidgets import QMainWindow, QSplitter, QWidget, QApplication, QFileDialog, QVBoxLayout, QPushButton
+from PySide6.QtWidgets import QMainWindow, QSplitter, QWidget, QApplication, QFileDialog, QVBoxLayout, QPushButton, QMenuBar
 from PySide6.QtGui import QAction
-
 import TagWindow, ItemList
 
 
@@ -12,74 +11,74 @@ class MainWindow(QMainWindow):
         self.setWindowTitle("TagVink")
         self.setMinimumSize(400, 300)
 
-        self.splitter = QSplitter(Qt.Horizontal)  # Create a horizontal splitter
-        self.setCentralWidget(self.splitter)
+        self.settings = QSettings("YourCompany", "YourAppName")
+
+        self.create_menu()
+
+        self.main_layout = QSplitter(Qt.Horizontal)
+        self.main_layout.setChildrenCollapsible(False)
 
         self.tag_window = TagWindow.TagWindow()
-        self.splitter.addWidget(self.tag_window)
+        self.main_layout.addWidget(self.tag_window)
 
-        self.item_list = None
+        self.directory_path = self.settings.value("directory_path", "")
+        self.item_list = ItemList.ItemList(self.directory_path)
+        self.main_layout.addWidget(self.item_list)
 
-        # Menu for selecting a directory
+        self.setCentralWidget(self.main_layout)
+
+        self.load_window_state()
+
+    def create_menu(self):
+        menubar = self.menuBar()
+        settings_menu = menubar.addMenu("Settings")
+
+        reset_action = QAction("Reset State", self)
+        reset_action.triggered.connect(self.reset_state)
+        settings_menu.addAction(reset_action)
+
         select_directory_action = QAction("Select Directory", self)
-        select_directory_action.triggered.connect(self.select_directory)
-
-        menu_bar = self.menuBar()
-        file_menu = menu_bar.addMenu("File")
-        file_menu.addAction(select_directory_action)
-
-        # Load settings (including splitter state, window geometry, and last directory)
-        self.load_settings()
-
-        # Load the previously selected directory if it exists
-        self.load_saved_directory()
+        select_directory_action.triggered.connect(self.open_directory_dialog)
+        settings_menu.addAction(select_directory_action)
 
     def closeEvent(self, event):
-        # Save settings (including splitter state, window geometry, and last directory)
-        self.save_settings()
-        super().closeEvent(event)
+        self.save_window_state()
+        event.accept()
 
-    def save_settings(self):
-        settings = QSettings("MyCompany", "TagVink")
-        settings.setValue("splitterSizes", self.splitter.sizes())
-        settings.setValue("windowGeometry", self.saveGeometry())
-        settings.setValue("windowState", self.saveState())
-        if self.item_list:
-            settings.setValue("lastDirectory", self.item_list.directory_path)
+    def save_window_state(self):
+        self.settings.setValue("geometry", self.saveGeometry())
+        self.settings.setValue("windowState", self.saveState())
+        self.settings.setValue("splitterState", self.main_layout.saveState())
+        self.settings.setValue("directory_path", self.directory_path)
 
-    def load_settings(self):
-        settings = QSettings("MyCompany", "TagVink")
-        sizes = settings.value("splitterSizes")
-        if sizes:
-            self.splitter.setSizes([int(size) for size in sizes])
-        geometry = settings.value("windowGeometry")
+    def load_window_state(self):
+        geometry = self.settings.value("geometry")
         if geometry:
             self.restoreGeometry(geometry)
-        state = settings.value("windowState")
-        if state:
-            self.restoreState(state)
+        window_state = self.settings.value("windowState")
+        if window_state:
+            self.restoreState(window_state)
+        splitter_state = self.settings.value("splitterState")
+        if splitter_state:
+            self.main_layout.restoreState(splitter_state)
 
-    def load_saved_directory(self):
-        settings = QSettings("MyCompany", "TagVink")
-        directory_path = settings.value("lastDirectory")
-        if directory_path:
-            self.load_directory(directory_path)
+    def reset_state(self):
+        self.settings.clear()
+        self.load_window_state()
+        self.directory_path = ""
+        self.item_list.clear()
 
-    def select_directory(self):
-        directory_path = QFileDialog.getExistingDirectory(self, "Select Directory")
-        if directory_path:
-            self.load_directory(directory_path)
-
-    def load_directory(self, directory_path):
-        if self.item_list:
-            self.splitter.widget(1).deleteLater()
-        self.item_list = ItemList.ItemList(directory_path)
-        self.splitter.addWidget(self.item_list)
+    def open_directory_dialog(self):
+        dialog = QFileDialog(self)
+        dialog.setFileMode(QFileDialog.Directory)
+        if dialog.exec():
+            self.directory_path = dialog.selectedFiles()[0]
+            self.item_list.set_directory_path(self.directory_path)
+            self.item_list.reload_images()  # Assuming you have this method to reload the images
 
 
 if __name__ == '__main__':
     import sys
-
     app = QApplication(sys.argv)
     main_window = MainWindow()
     main_window.show()
