@@ -1,6 +1,6 @@
 from PySide6.QtWidgets import QWidget, QVBoxLayout, QTableWidget, QTableWidgetItem, QMainWindow, QLabel, QProgressBar, \
     QApplication, QPushButton, QMessageBox
-from PySide6.QtCore import Qt, QThread, Signal, QEvent
+from PySide6.QtCore import Qt, QThread, Signal
 import os
 import exiftool
 

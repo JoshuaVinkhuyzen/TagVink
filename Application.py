@@ -2,8 +2,7 @@ from PySide6.QtCore import Qt, QSettings
 from PySide6.QtWidgets import QMainWindow, QSplitter, QWidget, QApplication, QFileDialog, QVBoxLayout, QPushButton
 from PySide6.QtGui import QAction
 
-import TagWindow
-import ItemList
+import TagWindow, ItemList
 
 
 class MainWindow(QMainWindow):
