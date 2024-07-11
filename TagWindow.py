@@ -1,4 +1,4 @@
-from PySide6.QtWidgets import QComboBox, QHBoxLayout, QVBoxLayout, QWidget, QFormLayout, QLabel, QListWidget, QLineEdit
+from PySide6.QtWidgets import QComboBox, QHBoxLayout, QVBoxLayout, QWidget, QLabel, QListWidget, QLineEdit
 from PySide6.QtGui import QPixmap
 
 
